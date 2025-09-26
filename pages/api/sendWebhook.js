@@ -4,24 +4,33 @@ export default async function handler(req, res) {
   }
 
   try {
-    const webhookUrl = 'https://discord.com/api/webhooks/your_webhook_id/your_webhook_token';
+    const body = req.body;
 
-    const payload = {
-      content: 'Webhook fired from Vercel endpoint!',
-    };
+    // If using form data, parse it manually
+    let rawData = '';
+    req.on('data', chunk => rawData += chunk);
+    req.on('end', () => {
+      const params = new URLSearchParams(rawData);
+      const webhookUrl = params.get('webhook');
+      const message = params.get('message');
 
-    const discordRes = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      if (!webhookUrl || !message) {
+        return res.status(400).json({ error: 'Missing fields' });
+      }
+
+      fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: message })
+      })
+      .then(discordRes => {
+        if (!discordRes.ok) throw new Error('Discord failed');
+        res.status(200).json({ success: true });
+      })
+      .catch(() => res.status(500).json({ error: 'Webhook failed' }));
     });
-
-    if (!discordRes.ok) {
-      return res.status(500).json({ error: 'Discord webhook failed' });
-    }
-
-    res.status(200).json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Internal Server Error' });
   }
-}// final redeploy trigger
+}
+// final redeploy trigger

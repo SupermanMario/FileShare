@@ -1,0 +1,4 @@
+echo "// final redeploy trigger" >> pages/api/sendWebhook.js
+git add .
+git commit -m "Trigger redeploy with blank root"
+git push origin main --force
